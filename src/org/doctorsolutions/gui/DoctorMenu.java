@@ -7,8 +7,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Vector;
 
 import javax.swing.AbstractListModel;
+import javax.swing.DefaultListModel;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -16,6 +18,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
@@ -26,11 +29,14 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import org.doctorsolutions.io.DatabaseManager;
+import org.doctorsolutions.model.patients.MedicalHistory;
 import org.doctorsolutions.model.patients.PatientInfo;
+import org.doctorsolutions.model.patients.Patients;
 
 import com.toedter.calendar.JDateChooser;
+
 import javax.swing.JSplitPane;
-public class DoctorMenu {
+public class DoctorMenu extends JFrame {
  
 	public static JTextField txtSearchUser = new JTextField();
 	public static JTextField txtPatientName = new JTextField();
@@ -53,13 +59,15 @@ public class DoctorMenu {
 	private static final JLayeredMenuPane lPnlDoctorMenu = new JLayeredMenuPane();
 	private static final JLayeredMenuPane lPnlPatientMenu = new JLayeredMenuPane(); 
 	private static JButton btnAddPatient = new JButton("");
-	private static JButton btnDeletePatient = new JButton("");
-	private static JButton btnEditPatient = new JButton("");
+	static JButton btnDeletePatient = new JButton("");
+	static JButton btnEditPatient = new JButton("");
 	private static JButton btnAddDoctor = new JButton("");
 	private static JButton btnDeleteDoctor = new JButton("");
 	private static JButton btnEditDoctor = new JButton("");
 	private static JScrollPane scrollPane = new JScrollPane();
-	private static JList lstNames = new JList();
+	static JList lstNames = new JList();
+	private static Vector names; 
+	
 	private static JPanel pnlPatientD = new JPanel();
 	private static JLabel lblPatientName = new JLabel("Patient Name:"); 
 	private static JLabel lblPatientNumber = new JLabel("Patient Number:");
@@ -68,7 +76,7 @@ public class DoctorMenu {
 	private static JLabel lblPatientEmail = new JLabel("Patient Email:");
 	private static JLabel lblContactNo = new JLabel("Patient Contact:");
 	private static JScrollPane scrlMedical = new JScrollPane();
-	private static JPanel pnlMedicalH = new JPanel();
+	static JPanel pnlMedicalH = new JPanel();
 	private static JLabel lblDescription = new JLabel("Description:");
 	private static JLabel lblTreatment = new JLabel("Treatment:");
 	private static JCheckBox chkPaidMedical1 = new JCheckBox("Paid");
@@ -82,9 +90,13 @@ public class DoctorMenu {
 	private static JButton btnApointments = new JButton("");
 	private static final JLabel lblPatientGender = new JLabel("Patient Gender:");
 	private static boolean canEdit = false;
+	private static boolean newPatient = false;
+	public static int selectedIndex;
 	
-	private static int testNum = 0;
-
+	
+	static int numHist = 0; 
+	static int newMedHist = 0;
+	
 	static ArrayList<JDateChooser> lblMHDate = new ArrayList<JDateChooser>(); 
 	static ArrayList<JLabel> lblMHDesc = new ArrayList<JLabel>();
 	static ArrayList<JTextArea> txtMHDesc = new ArrayList<JTextArea>();
@@ -92,26 +104,16 @@ public class DoctorMenu {
 	static ArrayList<JTextArea> txtMHTreat = new ArrayList<JTextArea>();
 	static ArrayList<JCheckBox> chkMHist = new ArrayList<JCheckBox>();
 	private static final JButton btnAddMedicalHistory = new JButton("ADD MEDICAL HISTORY");
-	private static final JDateChooser dateChooser = new JDateChooser();
+	//private static final JDateChooser dateChooser = new JDateChooser();
 	private static final JSplitPane pnlInfoEdit = new JSplitPane();
 	private static final JButton btnSavePatient = new JButton("SAVE PATIENT");
 	// lbl date, treatment, chkbox
-
-	public static void main(String[] args) {
-
-		try {
-			DatabaseManager.connect();
-			DatabaseManager.disconnect();
-		} catch (ClassNotFoundException e1) { 
-			e1.printStackTrace();
-		} catch (SQLException e1) { 
-			e1.printStackTrace();
-		}
-
+	
+	public DoctorMenu(){ 
 		drawGUI(); 
-
 	}
 
+	@SuppressWarnings("unchecked")
 	public static void drawGUI()
 	{
 
@@ -144,8 +146,7 @@ public class DoctorMenu {
 
 		lPnlDoctorMenu.setVisible(false);
 
-		lPnlPatientMenu.setVisible(false);
-
+		lPnlPatientMenu.setVisible(false); 
 
 		GridBagConstraints gbc_txtSearchUser = new GridBagConstraints();
 		gbc_txtSearchUser.anchor = GridBagConstraints.NORTH;
@@ -170,22 +171,48 @@ public class DoctorMenu {
 		btnAddPatient.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if(canEdit){
-					canEdit = false; 
-					/*
-					 * SAVE DATABASE HERE + CHECK DATA HERE.
-					 */
-					btnAddPatient.setIcon(new ImageIcon("E:\\VetMaster2.0\\data\\icons\\64x\\add_male_user.png"));
+					canEdit = false;  
 				}
 				else
 				{
+					patientInfoVisible(true);
 					clearInfo();
-					canEdit = true; 
-					btnAddPatient.setIcon(new ImageIcon("E:\\VetMaster2.0\\data\\icons\\64x\\accept_male_user.png"));
+					newPatient = true;
+					int nextPatientID = names.size() + 1;
+					txtPatientNumber.setText("" + nextPatientID);
+					canEdit = true;  
 				}
 				canEditData(canEdit);
 			}
 		});
 
+
+		final ListSelectionModel listSelectionModel;
+		
+//		scrollPane.setViewportView(lstNames);
+//		
+//		lstNames.setModel(new AbstractListModel() {
+//			public int getSize() {
+//				return PatientInfo.numPatients;
+//			}
+//			public Object getElementAt(int index) {
+//				return Patients.getPatientName(index);
+//			}
+//		});
+//		listSelectionModel = lstNames.getSelectionModel();
+//		listSelectionModel.addListSelectionListener(
+//				new SharedListSelectionHandler()); 
+//		lstNames.setToolTipText("");
+		
+		
+		names = new Vector();
+		
+		for(int i = 0; i<PatientInfo.numPatients; i++)
+			names.addElement(Patients.getPatientName(i));
+		
+		updateList();
+		
+		
 
 		btnAddPatient.setIcon(new ImageIcon("E:\\VetMaster2.0\\data\\icons\\64x\\add_male_user.png"));
 		btnAddPatient.setBackground(new Color(0, 0, 0, 0));
@@ -197,6 +224,20 @@ public class DoctorMenu {
 		gbc_btnAddPatient.gridx = 1;
 		gbc_btnAddPatient.gridy = 1;
 		lPnlPatientMenu.add(btnAddPatient, gbc_btnAddPatient);
+		btnDeletePatient.addActionListener(new ActionListener() {
+	        public void actionPerformed (ActionEvent e)   
+	        {  
+	        	int dialogResult = JOptionPane.showConfirmDialog (null, "Are you sure you want to delete this patient (irreversible)","Warning",JOptionPane.YES_NO_OPTION);
+	        	if(dialogResult == JOptionPane.YES_OPTION){
+	        	Patients.removePatientHistory(selectedIndex);
+	        	Patients.removePatient(selectedIndex);
+	            names.remove(selectedIndex);
+	            lstNames.setListData(names);
+	            DoctorMenu.patientInfoVisible(false); 
+	        	}
+	        } 
+		});
+		btnDeletePatient.setEnabled(false);
 
 
 		btnDeletePatient.setIcon(new ImageIcon("E:\\VetMaster2.0\\data\\icons\\64x\\remove_male_user.png"));
@@ -209,6 +250,7 @@ public class DoctorMenu {
 		gbc_btnDeletePatient.gridx = 1;
 		gbc_btnDeletePatient.gridy = 2;
 		lPnlPatientMenu.add(btnDeletePatient, gbc_btnDeletePatient);
+		btnEditPatient.setEnabled(false);
 		btnEditPatient.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if(canEdit){
@@ -287,26 +329,7 @@ public class DoctorMenu {
 		gbc_scrollPane.insets = new Insets(0, 0, 5, 5);
 		gbc_scrollPane.gridx = 1;
 		gbc_scrollPane.gridy = 2;
-		lPnlMain.add(scrollPane, gbc_scrollPane);
-
-		ListSelectionModel listSelectionModel;
-		
-		scrollPane.setViewportView(lstNames);
-		lstNames.setModel(new AbstractListModel() {
-			String[] values = new String[] {};
-			public int getSize() {
-				return PatientInfo.numPatients;
-			}
-			public Object getElementAt(int index) {
-				return PatientInfo.patientName[index];
-			}
-		});
-		listSelectionModel = lstNames.getSelectionModel();
-		listSelectionModel.addListSelectionListener(
-				new SharedListSelectionHandler());
-		lstNames.setToolTipText("");
-
-
+		lPnlMain.add(scrollPane, gbc_scrollPane); 
 		GridBagConstraints gbc_tabPnl = new GridBagConstraints();
 		gbc_tabPnl.insets = new Insets(0, 0, 5, 0);
 		gbc_tabPnl.fill = GridBagConstraints.BOTH;
@@ -475,8 +498,8 @@ public class DoctorMenu {
 		gbc_dateChooser.fill = GridBagConstraints.BOTH;
 		gbc_dateChooser.gridx = 2;
 		gbc_dateChooser.gridy = 0;
-		dateChooser.setVisible(false);
-		pnlMedicalH.add(dateChooser, gbc_dateChooser);
+		//dateChooser.setVisible(false);
+		//pnlMedicalH.add(dateChooser, gbc_dateChooser);
 
 		lblDescription.setFont(new Font("Tahoma", Font.BOLD, 14));
 		GridBagConstraints gbc_lblDescription = new GridBagConstraints();
@@ -605,19 +628,28 @@ public class DoctorMenu {
 		pnlInfoEdit.setRightComponent(btnAddMedicalHistory);
 		btnSavePatient.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				if(canEdit){
-					canEdit = false; 
-					/*
-					 * SAVE DATABASE HERE + CHECK DATA HERE.
-					 */
-					
+				if(canEdit && newPatient && checkPatientData()){
+					canEdit = false;  
+					//TODO  SAVE DATABASE HERE
+					Patients.addPatient(Integer.parseInt(txtPatientNumber.getText()) , txtPatientName.getText(),  txtPatientAddress.getText(), txtPatientEmail.getText(), txtPatientContact.getText(), txtPatientGender.getText(), txtPatientDOB.getText());
+					names.addElement(txtPatientName.getText()); 
+					if(newMedHist !=0)
+						saveMedHist();
+					updateList(); 
+					newMedHist = 0;
+					newPatient = false;
+				}
+				else if(canEdit && !newPatient && checkPatientData())
+				{
+					canEdit = false;  
 				}
 				else
 				{
 					canEdit = true; 
-				}
+				} 
 				canEditData(canEdit);
-			}
+				}
+				 
 		});
 		
 		pnlInfoEdit.setLeftComponent(btnSavePatient);
@@ -630,12 +662,11 @@ public class DoctorMenu {
 				 
 				 try {
 					d = ft.parse(dateTest);
-				} catch (ParseException e1) {
-					// TODO Auto-generated catch block
+				} catch (ParseException e1) { 
 					e1.printStackTrace();
 				}
-				addMedicalHistory(testNum, d, "This is a\n modafoking test", "Lels wows", true);
-				testNum++;
+				addMedicalHistory(numHist, d, "This is a\n modafoking test", "Lels wows", true);
+				numHist++;
 			}
 		});
 
@@ -729,7 +760,7 @@ public class DoctorMenu {
 	public static void canEditData(boolean edit)
 	{
 		txtPatientName.setEditable(edit);
-		txtPatientNumber.setEditable(edit);
+		//txtPatientNumber.setEditable(edit);
 		txtPatientAddress.setEditable(edit);
 		txtPatientDOB.setEditable(edit);
 		txtPatientEmail.setEditable(edit);
@@ -751,6 +782,46 @@ public class DoctorMenu {
 			chkMHist.get(i).setEnabled(edit);
 		}
 		
+	}
+	
+	public static void updateList(){
+
+		lstNames = new JList<String>(names);
+		lstNames.addListSelectionListener(new ListSelectionListener() { 
+                public void valueChanged(ListSelectionEvent e)  
+                {  
+        			btnDeletePatient.setEnabled(true);
+        			btnEditPatient.setEnabled(true);
+        			patientInfoVisible(true); 
+        			numHist = 0; 
+        			clearInfo();
+                        if (e.getValueIsAdjusting()) return;  
+                        JList theList = (JList)e.getSource();  
+                        if (! theList.isSelectionEmpty())          
+                        {                                   
+                                selectedIndex = theList.getSelectedIndex();
+            					txtPatientName.setText(Patients.getPatientName(theList.getSelectedIndex()));
+            					txtPatientNumber.setText(Integer.toString(Patients.getPatientID(theList.getSelectedIndex())));
+            					txtPatientAddress.setText(Patients.getPatientAddress(theList.getSelectedIndex()));
+            					txtPatientDOB.setText(Patients.getPatientDob(theList.getSelectedIndex()));
+            					txtPatientEmail.setText(Patients.getPatientEmail(theList.getSelectedIndex()));
+            					txtPatientContact.setText(Patients.getPatientContact(theList.getSelectedIndex()));
+            					txtPatientGender.setText(Patients.getPatientGender(theList.getSelectedIndex()));
+            					for(int x = 0; x < Patients.getHistListSize(); x++)
+            					{
+            						if(Patients.getPatientMedID(x) == Patients.getPatientID(theList.getSelectedIndex()))
+            						{
+            							addMedicalHistory(numHist, Patients.getMedicalDate(x), Patients.getMedDescription(x), Patients.getMedTreatment(x), true);
+            							numHist++;
+            							pnlMedicalH.repaint();
+            						}
+            					}
+                        }  
+                }  
+		});
+		lstNames.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);  
+		
+		scrollPane.setViewportView(lstNames);
 	}
 	
 	public static void clearInfo(){
@@ -779,13 +850,15 @@ public class DoctorMenu {
 			txtMHTreat.remove(0);
 			chkMHist.remove(0);
 		}
-		pnlMedicalH.revalidate();
-		testNum = 0;
+		pnlMedicalH.repaint();
+		numHist = 0;
 	}
+	
+
 
 	public static void addMedicalHistory(int numHist, Date date, String description, String treatment, boolean paid)
-	{
-
+	{ 
+		newMedHist++;
 		JDateChooser lblDate = new JDateChooser(date);
 		JLabel lblMHDescription = new JLabel("Description:");
 		JTextArea txtDescription = new JTextArea(description);
@@ -865,6 +938,32 @@ public class DoctorMenu {
 		
 		pnlMedicalH.revalidate();
  
+	}
+	
+	private static void saveMedHist()
+	{
+		for(int i = numHist - newMedHist; i < numHist; i++){
+			Patients.addMedHistory(i, Integer.parseInt(txtPatientNumber.getText()), Date.lblMHDate.get(numHist).getDate() , txtPatientNumber.getText(), txtPatientNumber.getText(), chkMHist.get(numHist).isSelected());
+		}
+			
+	}
+	
+	private static boolean checkPatientData(){
+		
+		//TODO FINISH DATA CHECK HERE. 
+		  
+		if(txtPatientName.getText().equals("") || txtPatientNumber.getText().equals("") || txtPatientAddress.getText().equals("") || txtPatientDOB.getText().equals("") || txtPatientEmail.getText().equals("") || txtPatientContact.getText().equals("") || txtPatientGender.getText().equals("")){
+			JOptionPane.showMessageDialog(null,
+				    "Please fill in all of the required fields.",
+				    "Error",
+				    JOptionPane.ERROR_MESSAGE);
+			return false;
+		}
+		  
+		if(!txtPatientName.getText().contains(" "))
+			return false;
+		
+		return true; 
 	}
 
 	public static void patientInfoVisible(boolean vis)
@@ -1038,36 +1137,41 @@ class JLayeredMenuPane extends JPanel {
 
 class SharedListSelectionHandler implements ListSelectionListener {
 	public void valueChanged(ListSelectionEvent e) { 
-		ListSelectionModel lsm = (ListSelectionModel)e.getSource();
-
-		int firstIndex = e.getFirstIndex();
-		int lastIndex = e.getLastIndex();
-		boolean isAdjusting = e.getValueIsAdjusting(); 
-		/*output.append("Event for indexes "
-	                      + firstIndex + " - " + lastIndex
-	                      + "; isAdjusting is " + isAdjusting
-	                      + "; selected indexes:");
-		 */
+		ListSelectionModel lsm = (ListSelectionModel)e.getSource(); 
 		if (lsm.isSelectionEmpty()) {
 			DoctorMenu.patientInfoVisible(false);
 		} else {
-			DoctorMenu.patientInfoVisible(true);
+			DoctorMenu.btnDeletePatient.setEnabled(true);
+			DoctorMenu.btnEditPatient.setEnabled(true);
+			DoctorMenu.patientInfoVisible(true); 
+			DoctorMenu.numHist = 0; 
+			DoctorMenu.clearInfo();
 			// Find out which indexes are selected.
 			int minIndex = lsm.getMinSelectionIndex();
 			int maxIndex = lsm.getMaxSelectionIndex();
 			for (int i = minIndex; i <= maxIndex; i++) {
-				if (lsm.isSelectedIndex(i) && i != 0) {
-					DoctorMenu.txtPatientName.setText(PatientInfo.patientName[i]);
-					DoctorMenu.txtPatientNumber.setText(PatientInfo.patientID[i]);
-					DoctorMenu.txtPatientAddress.setText(PatientInfo.patientAddress[i]);
-					DoctorMenu.txtPatientDOB.setText(PatientInfo.patientDOB[i]);
-					DoctorMenu.txtPatientEmail.setText(PatientInfo.patientEmail[i]);
-					DoctorMenu.txtPatientContact.setText(PatientInfo.patientContactNo[i]);
-					DoctorMenu.txtPatientGender.setText(PatientInfo.patientGender[i]); 
+				if (lsm.isSelectedIndex(i)) {
+					DoctorMenu.selectedIndex = i;
+					DoctorMenu.txtPatientName.setText(Patients.getPatientName(i));
+					DoctorMenu.txtPatientNumber.setText(Integer.toString(Patients.getPatientID(i)));
+					DoctorMenu.txtPatientAddress.setText(Patients.getPatientAddress(i));
+					DoctorMenu.txtPatientDOB.setText(Patients.getPatientDob(i));
+					DoctorMenu.txtPatientEmail.setText(Patients.getPatientEmail(i));
+					DoctorMenu.txtPatientContact.setText(Patients.getPatientContact(i));
+					DoctorMenu.txtPatientGender.setText(Patients.getPatientGender(i));
+					for(int x = 0; x < Patients.getHistListSize(); x++)
+					{
+						if(Patients.getPatientMedID(x) == Patients.getPatientID(i))
+						{
+							DoctorMenu.addMedicalHistory(DoctorMenu.numHist, Patients.getMedicalDate(x), Patients.getMedDescription(x), Patients.getMedTreatment(x), true);
+							DoctorMenu.numHist++;
+							DoctorMenu.pnlMedicalH.repaint();
+						}
+					}
 				}
 			}
 		}
 		//output.append(newline);
 		//output.setCaretPosition(output.getDocument().getLength());
 	}
-} 
+}   

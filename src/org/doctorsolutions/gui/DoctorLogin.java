@@ -14,12 +14,9 @@ import javax.swing.JLabel;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JTextArea;
-import javax.swing.LayoutStyle.ComponentPlacement; 
-import javax.swing.SwingConstants;
+import javax.swing.LayoutStyle.ComponentPlacement;  
 
-import de.javasoft.plaf.synthetica.SyntheticaBlackEyeLookAndFeel;
-
-import java.awt.Component;
+import de.javasoft.plaf.synthetica.SyntheticaBlackEyeLookAndFeel; 
 
 @SuppressWarnings("serial")
 public class DoctorLogin extends JFrame {
