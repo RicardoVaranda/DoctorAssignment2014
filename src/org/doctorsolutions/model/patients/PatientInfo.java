@@ -24,6 +24,8 @@ public class PatientInfo {
 	public static int numPatients = 0;
 	
 	/*
+	 * 
+	 *
 	 1		PatientID
 	 2 		PatientName
 	 3		PatientAddress
@@ -31,6 +33,8 @@ public class PatientInfo {
 	 5		PatientContactNo
 	 6		PatientGender Descending
 	 7		PatientDOB
+	 *
+	 *
 	 */
 	
 	PatientInfo(){
